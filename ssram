@@ -1,0 +1,74 @@
+module dual_port_SSRAM (
+    input wire clk, 
+    input wire en1, wr1, en2,  // Enable signals
+    input wire [11:0] a1, a2,  // 12-bit address (4K locations)
+    input wire [31:0] d_in1,   // 32-bit data input for write port
+    output reg [31:0] d_out1, d_out2 // 32-bit data outputs
+);
+
+    reg [31:0] memory [0:4095]; // 4K x 32-bit memory
+
+    always @(posedge clk) begin
+        // Port 1 (Read/Write)
+        if (en1) begin
+            if (wr1) begin
+                memory[a1] <= d_in1; // Write operation
+                d_out1 <= d_in1; // Flow-through behavior
+            end else begin
+                d_out1 <= memory[a1]; // Read operation
+            end
+        end
+
+        // Port 2 (Read-Only)
+        if (en2) begin
+            d_out2 <= memory[a2]; // Read operation
+        end
+    end
+endmodule
+module dual_port_tb;
+    reg clk;
+    reg en1, wr1, en2;
+    reg [11:0] a1, a2;
+    reg [31:0] d_in1;
+    wire [31:0] d_out1, d_out2;
+
+    // Instantiate the SSRAM module
+    dual_port_SSRAM uut (
+        .clk(clk),
+        .en1(en1), .wr1(wr1), .a1(a1), .d_in1(d_in1), .d_out1(d_out1),
+        .en2(en2), .a2(a2), .d_out2(d_out2)
+    );
+
+    // Clock generation
+    always #5 clk = ~clk; // 10 ns clock cycle
+
+    initial begin
+        clk = 0;
+        en1 = 0; wr1 = 0; en2 = 0;
+        a1 = 12'd0; a2 = 12'd0;
+        d_in1 = 32'd0;
+        
+        $monitor("Time=%0t | en1=%b wr1=%b a1=%d d_in1=%d d_out1=%d | en2=%b a2=%d d_out2=%d",
+                 $time, en1, wr1, a1, d_in1, d_out1, en2, a2, d_out2);
+
+        // Write operation on Port 1
+        #10 en1 = 1; wr1 = 1; a1 = 12'd5; d_in1 = 32'd256;
+        #10 wr1 = 0; // Stop writing
+
+        // Read operation on Port 1
+        #10 en1 = 1; a1 = 12'd5;
+
+        // Read operation on Port 2
+        #10 en2 = 1; a2 = 12'd5;
+        
+        // Write another value
+        #10 wr1 = 1; a1 = 12'd10; d_in1 = 32'd257;
+        #10 wr1 = 0; // Stop writing
+
+        // Read from both ports
+        #10 a1 = 12'd10;
+        #10 a2 = 12'd10;
+
+        #10 $stop;
+    end
+endmodule

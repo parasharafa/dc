@@ -1,0 +1,64 @@
+module fixed_point_accumulator (
+    input clk, 
+    input rst, 
+    input data_en, 
+    input signed [17:0] in_data,  
+    output reg signed [19:0] sum  // Q8.12 format (8 pre + 12 post)
+);
+
+    always @(posedge clk) begin
+        if (rst) 
+            sum <= 20'b0; // Reset sum to 0
+        else if (data_en) 
+            sum <= sum + in_data; // Accumulate input data
+    end
+
+endmodule
+
+//Test bench code
+
+module tb_fixed_point_accumulator;
+    reg clk, rst, data_en;
+    reg signed [17:0] in_data;  // Q6.12 format
+    wire signed [19:0] sum;     // Q8.12 format
+
+    // Instantiate the accumulator
+    fixed_point_accumulator uut (
+        .clk(clk),
+        .rst(rst),
+        .data_en(data_en),
+        .in_data(in_data),
+        .sum(sum)
+    );
+
+    // Clock Generation
+    always #5 clk = ~clk; // 10ns clock period
+
+    initial begin
+        $monitor("Time=%0t | in_data=%d (fixed-point) | sum=%d (fixed-point) | sum_decimal=%.4f", 
+                  $time, in_data, sum, sum / 4096.0);
+
+        // Initialize
+        clk = 0; rst = 1; data_en = 0; in_data = 0;
+        #10 rst = 0; data_en = 1;
+
+        // Test cases (input in Q6.12 format)
+        #10 in_data = 18'sd12;   
+        #10 in_data = 18'sd819;    
+        #10 in_data = -18'sd10;   
+        #10 in_data = 18'sd20;   
+        #10 in_data = -18'sd27;  
+
+        // Reset the accumulator
+        #10 rst = 1;
+        #10 rst = 0; data_en = 1;
+        #10 in_data = 18'sd16384;   
+
+        #20 $finish;
+    end
+
+    initial begin
+        $dumpfile("accumulator.vcd");
+        $dumpvars(0, tb_fixed_point_accumulator);
+    end
+endmodule

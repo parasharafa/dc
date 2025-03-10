@@ -1,0 +1,53 @@
+module parity_gen_8bit(
+    input [7:0] parity_in,
+    output parity_even,
+    output parity_odd
+);
+
+// XOR all bits to generate even parity
+assign parity_even = parity_in[7] ^ parity_in[6] ^ parity_in[5] ^ parity_in[4] ^ 
+                     parity_in[3] ^ parity_in[2] ^ parity_in[1] ^ parity_in[0];
+
+// Odd parity is the complement of even parity
+assign parity_odd = ~parity_even;
+
+endmodule
+
+//Testbench code
+
+module parity_gen_8bit_tb;
+
+// Inputs
+reg [7:0] parity_in;
+
+// Outputs
+wire parity_even;
+wire parity_odd;
+
+// Instantiate the Unit Under Test (UUT)
+parity_gen_8bit uut (
+    .parity_in(parity_in),
+    .parity_even(parity_even),
+    .parity_odd(parity_odd)
+);
+
+initial begin
+    // Display the values
+    $monitor("Time=%0t | Input=%b | Even Parity=%b | Odd Parity=%b", 
+             $time, parity_in, parity_even, parity_odd);
+    
+    // Initialize Inputs
+    parity_in = 8'b00000000; #100;
+    parity_in = 8'b01100001; #100;
+    parity_in = 8'b01100011; #100;
+    parity_in = 8'b10110101; #100;
+    parity_in = 8'b00000001; #100;
+    parity_in = 8'b01111111; #100;
+    parity_in = 8'b11111111; #100;
+   
+    
+    // Finish simulation
+    $finish;
+end
+
+endmodule

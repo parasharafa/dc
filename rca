@@ -1,0 +1,71 @@
+`timescale 1ns/1ps
+
+// Full Adder Module
+module fulladd (
+    input a, b, cin,
+    output sum, cout
+);
+    assign sum  = a ^ b ^ cin;
+    assign cout = (a & b) | (b & cin) | (a & cin);
+endmodule
+
+// 8-bit Ripple Carry Adder Module
+module ripple_carry (
+    input [7:0] a, b,  
+    input cin,         
+    output [7:0] sum,  
+    output cout        
+);
+    wire [7:0] c; // Internal carry signals (updated to 8-bit for clarity)
+
+    // 8 full adders chained together
+    fulladd a1 (a[0], b[0], cin,    sum[0], c[0]);
+    fulladd a2 (a[1], b[1], c[0],   sum[1], c[1]);
+    fulladd a3 (a[2], b[2], c[1],   sum[2], c[2]);
+    fulladd a4 (a[3], b[3], c[2],   sum[3], c[3]);
+    fulladd a5 (a[4], b[4], c[3],   sum[4], c[4]);
+    fulladd a6 (a[5], b[5], c[4],   sum[5], c[5]);
+    fulladd a7 (a[6], b[6], c[5],   sum[6], c[6]);
+    fulladd a8 (a[7], b[7], c[6],   sum[7], cout);
+endmodule
+
+// Testbench for 8-bit Ripple Carry Adder
+module ripple_tb;
+    // Inputs
+    reg [7:0] a, b;
+    reg cin;
+
+    // Outputs
+    wire [7:0] sum;
+    wire cout;
+
+    // Instantiate the Unit Under Test (UUT)
+    ripple_carry uut (
+        .a(a),
+        .b(b),
+        .cin(cin),
+        .sum(sum),
+        .cout(cout)
+    );
+
+    initial begin
+        // Initialize Inputs
+        a = 8'b00000000;
+        b = 8'b00000000;
+        cin = 1'b0;
+
+        // Apply test cases
+        #10  a = 8'b00000001; b = 8'b00000001; cin = 1'b0; // 1 + 1
+        #10  a = 8'b10110011; b = 8'b11000101; cin = 1'b0; // Random values
+        #10  a = 8'b01110000; b = 8'b10001100; cin = 1'b0; // Random values
+        #10  a = 8'b11111111; b = 8'b00000001; cin = 1'b0; // Overflow case
+        #10  a = 8'b11001000; b = 8'b00110010; cin = 1'b0; // Another case
+        #10  $finish; // End simulation
+    end
+
+    // Display values during simulation
+    initial begin
+        $monitor("Time=%0t | A=%b B=%b Cin=%b | Sum=%b Cout=%b", 
+                 $time, a, b, cin, sum, cout);
+    end
+endmodule
